@@ -54,7 +54,6 @@ typedef struct menu_node_item {
   uint8_t Id;
   char* Menu;
   struct menu_node* Item;
-  void (*LookupFunc)(bool*);
 } MenuNodeItem;
 
 typedef struct menu_node {
@@ -64,7 +63,6 @@ typedef struct menu_node {
   uint8_t Index;
   uint8_t ScrollIndex;
   uint8_t ItemCount;
-  uint8_t LookupItemCount;
   uint8_t ParentId;
   char* ParentMenu;
   void (*ExecFunc)(bool);
@@ -138,48 +136,6 @@ void setup() {
   setupMenu();
   
   showMenu(currentMenu);
-
-//  selectMenu(); // running the currently select menu
-
-//  goBackMenu(); // move back one step in the menu hierarchy
-//
-//  selectMenu();
-//  
-//  navigateMenu(currentMenu, 1); // simulating Menu Down button press
-//  selectMenu();
-//  navigateMenu(currentMenu, 1);
-//  navigateMenu(currentMenu, 1);
-//  navigateMenu(currentMenu, 1);
-//  selectMenu();
-//  navigateMenu(currentMenu, 1);
-//  selectMenu();
-//  navigateMenu(currentMenu, 1);
-//  navigateMenu(currentMenu, 1);
-//  selectMenu();
-//  navigateMenu(currentMenu, 1);
-//  selectMenu();
-//
-//  goBackMenu();
-//  goBackMenu();
-//
-//  selectMenu();
-//  navigateMenu(currentMenu, 1);
-//  selectMenu();
-//
-//  goBackMenu();
-//  goBackMenu();
-//  goBackMenu();
-//  goBackMenu();
-//  goBackMenu();
-  
-//  navigateMenu(currentMenu, -1);  // simulating Menu Up button press
-//  navigateMenu(currentMenu, -1);
-//  selectMenu();
-//  navigateMenu(currentMenu, -1);
-//  navigateMenu(currentMenu, -1);
-//  selectMenu();
-//  navigateMenu(currentMenu, -1);
-//  navigateMenu(currentMenu, -1);
 }
 
 void setupMenu()  {
@@ -201,8 +157,8 @@ void setupMenu()  {
   // Control menu --------------------
   controlMenu = (MenuNode*)malloc(sizeof(MenuNode));
   initMenuNode(controlMenu, menu_control_title, 6);
-  initMenuNodeItemWithLookup(controlMenu->Items, 0, MENU_ID_CONTROL_AUX, menu_control_0, funcIsNotTrimming);
-  initMenuNodeItemWithLookup(controlMenu->Items, 1, MENU_ID_CONTROL_TYPR, menu_control_1, funcIsTrimming);
+  initMenuNodeItem(controlMenu->Items, 0, MENU_ID_CONTROL_AUX, menu_control_0);
+  initMenuNodeItem(controlMenu->Items, 1, MENU_ID_CONTROL_TYPR, menu_control_1);
   initMenuNodeItem(controlMenu->Items, 2, MENU_ID_CONTROL_MODE, menu_control_2);
   initMenuNodeItem(controlMenu->Items, 3, MENU_ID_CONTROL_BATTERY, menu_control_3);
   initMenuNodeItem(controlMenu->Items, 4, MENU_ID_CONTROL_SWD, menu_control_4);
@@ -260,7 +216,6 @@ void initMenuNode(MenuNode* node, char* title, uint8_t itemCount) {
   node->Index = 0;
   node->ScrollIndex = 0;
   node->ItemCount = itemCount;
-  node->LookupItemCount = itemCount;
   node->ParentId = 0;
   node->ParentMenu = NULL;
   node->Prev = NULL;
@@ -268,24 +223,11 @@ void initMenuNode(MenuNode* node, char* title, uint8_t itemCount) {
   node->Items = (MenuNodeItem*)malloc(itemCount * sizeof(MenuNodeItem));
 }
 
-//void initMenuNodeWithParentData(MenuNode* node, char* title, uint8_t itemCount, char *parentMenu, uint8_t parentId) {
-//  initMenuNode(node, title, itemCount);
-//  node->ParentId = parentId;
-//  node->ParentMenu = parentMenu;
-//}
-
 void initMenuNodeItem(MenuNodeItem* items, uint8_t index, uint8_t id, char* menu)  {
   MenuNodeItem* nodeItem = &items[index];
   nodeItem->Id = id;
   nodeItem->Menu = menu;
   nodeItem->Item = NULL;
-  nodeItem->LookupFunc = NULL;
-}
-
-void initMenuNodeItemWithLookup(MenuNodeItem* items, uint8_t index, uint8_t id, char* menu, void (*func)(bool*))  {
-  MenuNodeItem* nodeItem = &items[index];
-  initMenuNodeItem(items, index, id, menu);
-  nodeItem->LookupFunc = func;
 }
 
 void showMenu(MenuNode* node)  {
@@ -297,16 +239,6 @@ void showMenu(MenuNode* node, bool printLine)  {
     int totalLines = node->ItemCount + SCREEN_MENU_HEADER_ROWS;
     int printStartIndex = node->ScrollIndex;
     int printEndIndex = printStartIndex + SCREEN_MAX_ROWS - 1;
-
-//    if (node->Index + SCREEN_MENU_HEADER_ROWS < SCREEN_MAX_ROWS)  {
-//      printStartIndex = 0;
-//      printEndIndex = printStartIndex + SCREEN_MAX_ROWS - 1;
-//    }
-//
-//    if (printEndIndex >= totalLines)  {
-//      printEndIndex = totalLines - SCREEN_MENU_HEADER_ROWS;
-//      printStartIndex = printEndIndex - SCREEN_MAX_ROWS + SCREEN_MENU_HEADER_ROWS;
-//    }
 
     if (printStartIndex < 0)  {
       printStartIndex = 0;
@@ -323,31 +255,18 @@ void showMenu(MenuNode* node, bool printLine)  {
       Serial.println(" =="); // print Title first
     }
     
-    bool lookupData = true;
-    int j = 0;
-    
     for (int i = 0; i < node->ItemCount; i++) {
-//      lookupData = true;
-      
-//      if (node->Items[i].LookupFunc)  {
-//        node->Items[i].LookupFunc(&lookupData);
-//      }
-
-//      if (lookupData) {
-        if ((i + 1) >= printStartIndex && (i + 1) <= printEndIndex) {
-          if (node->Index == j) {
-            Serial.print("*");
-          }
-          else  {
-            Serial.print(" ");
-          }
-          
-          Serial.println(node->Items[i].Menu); // print each menu item
+      if ((i + 1) >= printStartIndex && (i + 1) <= printEndIndex) {
+        if (node->Index == i) {
+          Serial.print("*");
         }
-        j++;
-//      }
+        else  {
+          Serial.print(" ");
+        }
+        
+        Serial.println(node->Items[i].Menu); // print each menu item
+      }
     }
-    node->LookupItemCount = j;  // Refresh the number of items in a node
   }
   else  {
     Serial.println("Menu not set!");
@@ -358,14 +277,6 @@ void showMenu(MenuNode* node, bool printLine)  {
   }
 }
 
-void funcIsTrimming(bool* bOutput)  {
-  *bOutput = IsTrimming;
-}
-
-void funcIsNotTrimming(bool* bOutput) {
-  *bOutput = !IsTrimming;
-}
-
 void navigateMenu(MenuNode* node, int8_t upOrDown) {
   bool itemEditMode = false;
   
@@ -373,7 +284,7 @@ void navigateMenu(MenuNode* node, int8_t upOrDown) {
     if (itemEdit.Index == ITEM_EDIT_NOT_SELECTED) {
       if (upOrDown == 1)  {
         node->Index++;
-        if (node->Index >= node->LookupItemCount) {
+        if (node->Index >= node->ItemCount) {
           node->Index = 0;
         }
   
@@ -391,7 +302,7 @@ void navigateMenu(MenuNode* node, int8_t upOrDown) {
       }
       else if (upOrDown == -1)  {
         if (node->Index == 0)  {
-          node->Index = node->LookupItemCount - 1;
+          node->Index = node->ItemCount - 1;
         }
         else  {
           node->Index--;
@@ -458,26 +369,15 @@ void selectMenu() {
     if (itemEdit.Index == ITEM_EDIT_NOT_SELECTED) {
       MenuNode* temp = NULL;
   
-      bool lookupData = true;
-      int j = 0;
       uint8_t menuId = 0;
       char* title;
       
       for (int i = 0; i < currentMenu->ItemCount; i++) {
-  //      lookupData = true;
-        
-  //      if (currentMenu->Items[i].LookupFunc)  {
-  //        currentMenu->Items[i].LookupFunc(&lookupData);
-  //      }
-  
-  //      if (lookupData) {
-          if (currentMenu->Index == j)  {
-            temp = currentMenu->Items[i].Item;
-            menuId = currentMenu->Items[i].Id;
-            title = currentMenu->Items[i].Menu;
-          }
-          j++;
-  //      }
+        if (currentMenu->Index == i)  {
+          temp = currentMenu->Items[i].Item;
+          menuId = currentMenu->Items[i].Id;
+          title = currentMenu->Items[i].Menu;
+        }
       }
       
       if (temp) {
@@ -488,7 +388,6 @@ void selectMenu() {
         showMenu(currentMenu);  // print menu
       }
       else  { // No more sub-menu. Take action now
-  //      Serial.println("No sub-menu found. Handling the menu"); // for testing only
         handleMenu(menuId, title); // Id distinguishes each menu
       }
     }
