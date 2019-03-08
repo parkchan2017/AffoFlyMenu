@@ -44,7 +44,7 @@
 
 #define MENU_ID_RX_RENAME_OK        60
 
-#define RX_NAME_MAX_LEN             13
+#define RX_NAME_MAX_LEN             12
 
 #define ITEM_EDIT_NOT_SELECTED      100
 #define NULL_CHAR                   '\0'
@@ -70,7 +70,7 @@ typedef struct menu_node {
 } MenuNode;
 
 typedef struct menu_item_edit {
-  char Value[RX_NAME_MAX_LEN];
+  char Value[RX_NAME_MAX_LEN + 1];
   uint8_t Index;
 } MenuItemEdit;
 
@@ -106,7 +106,7 @@ const char menu_setting_3[] = "Soft Reset/Restart";
 
 // RX meu items
 const char menu_rx_title[] = "RX";
-char menu_rx[][RX_NAME_MAX_LEN] = {"RX1 Name", "RX2 Name", "RX3 Name", "RX4 Name", "RX5 Name", "RX6 Name", "RX7 Name", "RX8 Name", "RX9 Name", "RX10 Name"};
+char menu_rx[][RX_NAME_MAX_LEN + 1] = {"RX1 Name", "RX2 Name", "RX3 Name", "RX4 Name", "RX5 Name", "RX6 Name", "RX7 Name", "RX8 Name", "RX9 Name", "RX10 Name"};
 
 
 // RX setting menu items
@@ -335,7 +335,7 @@ void navigateMenu(MenuNode* node, int8_t upOrDown) {
     }
     else  {
       itemEditMode = true;
-      itemEdit.Value[itemEdit.Index] = getNextCharValue(itemEdit.Value[itemEdit.Index], upOrDown);
+      itemEdit.Value[itemEdit.Index] = getNextAllowedChar(itemEdit.Value[itemEdit.Index], upOrDown);
     }
     
     showMenu(node, !itemEditMode);  // print menu
@@ -346,28 +346,31 @@ void navigateMenu(MenuNode* node, int8_t upOrDown) {
   }
 }
 
-uint8_t getNextCharValue(uint8_t ch, int8_t upOrDown) {
+uint8_t getNextAllowedChar(uint8_t ch, int8_t upOrDown) {
   uint8_t len = strlen(allowed_chars);
   char *pch = strchr(allowed_chars, ch);
-  uint8_t index = (pch - allowed_chars);
-  
-  if (upOrDown == 1) { // up
-    if (index >= len - 1) {
-      index = 0;
-    }
-    else  {
-      index++;
-    }
-  }
-  else  { // down
-    if (index == 0)  {
-      index = len - 1;
-    }
-    else  {
-      index--;
-    }
-  }
+  uint8_t index = 0;
 
+  if (pch)  {
+    index = (pch - allowed_chars);
+    
+    if (upOrDown == 1) { // up
+      if (index >= len - 1) {
+        index = 0;
+      }
+      else  {
+        index++;
+      }
+    }
+    else  { // down
+      if (index == 0)  {
+        index = len - 1;
+      }
+      else  {
+        index--;
+      }
+    }
+  }
   return allowed_chars[index];
 }
 
