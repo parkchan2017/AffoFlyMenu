@@ -54,6 +54,7 @@ typedef struct menu_node_item {
   uint8_t Id;
   char* Menu;
   struct menu_node* Item;
+  bool Selectable;
 } MenuNodeItem;
 
 typedef struct menu_node {
@@ -112,8 +113,6 @@ char menu_rx[][RX_NAME_MAX_LEN] = {"RX1 Name", "RX2 Name", "RX3 Name", "RX4 Name
 const char menu_rx_setting_0[] = "Select";
 const char menu_rx_setting_1[] = "Rename";
 const char menu_rx_setting_2[] = "Bind";
-const char menu_rx_setting_3[] = "(Token)";
-const char menu_rx_setting_4[] = "(Channel)";
 
 
 MenuNode* topMenu;
@@ -121,7 +120,8 @@ MenuNode* currentMenu;
 MenuNode* rxSettingTemplate;
 MenuNode* rxRenameTemplate;
 MenuItemEdit itemEdit;
-bool IsTrimming = false;
+char rx_token[] = "25431";
+char rx_channel[] = "3";
 int inputVal;
 
 void setup() {
@@ -198,8 +198,8 @@ void setupMenu()  {
   initMenuNodeItem(rxSettingTemplate->Items, 0, MENU_ID_RX_SETTING_SELECT, menu_rx_setting_0);
   initMenuNodeItem(rxSettingTemplate->Items, 1, MENU_ID_RX_SETTING_RENAME, menu_rx_setting_1);
   initMenuNodeItem(rxSettingTemplate->Items, 2, MENU_ID_RX_SETTING_BIND, menu_rx_setting_2);
-  initMenuNodeItem(rxSettingTemplate->Items, 3, MENU_ID_RX_SETTING_TOKEN, menu_rx_setting_3);
-  initMenuNodeItem(rxSettingTemplate->Items, 4, MENU_ID_RX_SETTING_CHANNEL, menu_rx_setting_4);
+  initMenuNodeItemWithSelectable(rxSettingTemplate->Items, 3, MENU_ID_RX_SETTING_TOKEN, rx_token, false);
+  initMenuNodeItemWithSelectable(rxSettingTemplate->Items, 4, MENU_ID_RX_SETTING_CHANNEL, rx_channel, false);
   rxSettingTemplate->Prev = rxMenu;  // Link back to the previous menu node
 
   // RX Rename template ---------------------
@@ -228,6 +228,13 @@ void initMenuNodeItem(MenuNodeItem* items, uint8_t index, uint8_t id, char* menu
   nodeItem->Id = id;
   nodeItem->Menu = menu;
   nodeItem->Item = NULL;
+  nodeItem->Selectable = true;
+}
+
+void initMenuNodeItemWithSelectable(MenuNodeItem* items, uint8_t index, uint8_t id, char* menu, bool selectable)  {
+  MenuNodeItem* nodeItem = &items[index];
+  initMenuNodeItem(items, index, id, menu);
+  nodeItem->Selectable = selectable;
 }
 
 void showMenu(MenuNode* node)  {
@@ -257,7 +264,7 @@ void showMenu(MenuNode* node, bool printLine)  {
     
     for (int i = 0; i < node->ItemCount; i++) {
       if ((i + 1) >= printStartIndex && (i + 1) <= printEndIndex) {
-        if (node->Index == i) {
+        if (node->Index == i && node->Items[i].Selectable) {
           Serial.print("*");
         }
         else  {
@@ -373,7 +380,7 @@ void selectMenu() {
       char* title;
       
       for (int i = 0; i < currentMenu->ItemCount; i++) {
-        if (currentMenu->Index == i)  {
+        if (currentMenu->Index == i && currentMenu->Items[i].Selectable) {
           temp = currentMenu->Items[i].Item;
           menuId = currentMenu->Items[i].Id;
           title = currentMenu->Items[i].Menu;
@@ -462,7 +469,7 @@ void handleMenu(uint8_t menuId, char* title) {
         break;
     }
   }
-  Serial.println(""); // print an empty line
+//  Serial.println(""); // print an empty line
 }
 
 void showRxRename(bool saveMode) {
